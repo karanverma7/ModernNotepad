@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The CheckList</title>
+    <style>
+        body {
+            margin: 0px;
+            background-color: rgb(48, 22, 63);
+            font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+        }
+        #notepad {
+            width: 400px;
+            height: 400px;
+            background-color: rgb(248, 248, 248);
+            margin: 50px auto;
+            font-size: 15px;
+            color: rgb(0, 71, 71);
+            font-weight: 550;
+            box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.6);
+            position: relative;
+            z-index: 2;
+        }
+        .item {
+            display: flex;
+            align-items: center;
+            justify-content: left;
+            border-bottom: 1px solid rgb(198, 207, 255);
+            padding: 0px 20px;
+        }
+        .item:first-child {
+            padding-top: 10px;
+        }
+        .item p {
+            padding-left: 20px;
+            margin-left: 10px;
+        }
+        #line {
+            height: 400px;
+            width: 1.5px;
+            background-color: rgb(198, 207, 255);
+            position: absolute;
+            top: 0px;
+            left: 55px;
+        }
+        #hrline {
+            height: 2px;
+            width: 400px;
+            background-color: rgb(198, 207, 255);
+            position: absolute;
+            margin-top: 40px;
+        }
+        h1 {
+            color: rgb(255, 255, 255);
+            text-align: center;
+            margin-top: 30px;
+            filter: drop-shadow(1px 1px 2px rgba(0, 0, 0, 0.8));
+        }
+        input:checked + p {
+        text-decoration: line-through;
+        }
+        form{
+            text-align: center;
+            margin-top: 30px;
+        }
+        input[type=text] {
+            text-align: center;
+            border-radius: 15px;
+            height: 30px;
+            width: 290px;
+            outline-style: none;
+            border: none;
+            background-color: rgb(248, 248, 248);
+            filter: drop-shadow(1px 1px 1px black);
+            padding: 5px 10px;
+            font-size: 14px;
+            font-weight: 550;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        }
+        input[type=text]:focus {
+            border: 1px solid rgb(170, 35, 35);
+            background-color: white;
+        }
+
+        button{
+            position: absolute;
+            right: 20px;
+            background-color: rgb(201, 31, 31);
+            border: none;
+            color: white;
+            font-size: 9px;
+            padding: 3px 6px;
+        }
+        #tips {
+            background-color: rgba(0,0,0,0.3);
+            color: white;
+            font-size: 12px;
+            width: 320px;
+            padding: 10px;
+            padding-top: 0px;
+            position: absolute;
+            right: 200px;
+            top: 186px;
+            transition: all 0.5s linear;
+            transform: translateX(-200px);
+            z-index: 1;
+        }
+
+        #tips li {
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Voice To Text Notepad</h1>
+    <form>
+        <input type="text" id="notes" placeholder="Speak Up!">
+    </form>
+    <div id="notepad">
+        <div id="line"></div>
+        <div id="line" style="left: 52px"></div>
+    </div>
+    <div id="tips">
+        <h4 style="text-align: right; border-bottom: 1px dashed white;">Instructions</h4>
+        <li>Say Something!</li>
+        <li>Say <span style="color: rgb(121, 255, 116);">'done'</span> to add item to notepad.</li>
+        <li>Say <span style="color: rgb(255, 116, 116);">'delete'</span> to delete item from notepad.</li>
+        <li>Say <span style="color: rgb(224, 255, 112);">'clear all'</span> to empty notepad</li>
+    </div>
+</body>
+<script>
+    let checkboxes = document.querySelectorAll('input[type="checkbox"]')
+    let form = document.querySelector('form')
+    let notepad = document.querySelector('#notepad')
+    let close = document.querySelectorAll('button')
+    let input = document.querySelector('#notes')
+    let tips = document.querySelector('#tips')
+
+    tips.addEventListener('mouseenter', (e) => {
+        tips.style.transform = 'translate(60px)'
+        console.log(e)
+    })
+    tips.addEventListener('mouseleave', (e) => {
+        tips.style.transform = 'translate(-200px)'
+        console.log(e)
+    })
+
+    let lastChecked
+    let i = 0
+
+    window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+
+    const recognition = new SpeechRecognition()
+    recognition.interimResults = true
+    recognition.lang = 'en-US'
+
+    recognition.addEventListener('result', e => {
+        const task = Array.from(e.results)
+            .map(result => result[0])
+            .map(result => result.transcript)
+            .join('')
+        if(e.results[0].isFinal){
+            if(task.includes('done')){
+                addNotes(e)
+            }
+            else if(task.includes('delete')){
+                items.pop()
+                localStorage.setItem('items', JSON.stringify(items))
+                window.location.reload()
+            }
+            else if(task.includes('clear all')){
+                items.splice(0, items.length)
+                localStorage.setItem('items', JSON.stringify(items))
+                window.location.reload()
+            }
+            else{
+                input.value = task
+            }
+            
+        }
+    })
+
+    recognition.addEventListener('end', recognition.start);
+    let items = JSON.parse(localStorage.getItem('items')) || []
+
+    function addNotes(e){
+        if(notepad.childElementCount > 8) return alert('Notepad Full!') ;
+        e.preventDefault();
+        var text = document.querySelector('#notes').value
+        var item = {
+            text,
+            done: false
+        }
+        var newNote = document.createElement('div')
+        newNote.setAttribute('class', 'item')
+        newNote.innerHTML = `
+            <input type="checkbox" data-id=${i}>
+            <p>${text}</p>
+            <button data-id=${i}>X</button>
+        `
+        notepad.appendChild(newNote)
+        form.reset()
+        items.push(item)
+        i += 1;
+        localStorage.setItem('items', JSON.stringify(items))
+    }
+
+    function handleCheck(e) {
+        let inBetween = false
+
+        if(e.shiftKey && this.checked){
+            checkboxes.forEach(checkbox => {
+                if(checkbox == this || checkbox == lastChecked){
+                    inBetween = !inBetween
+                }
+
+                if(inBetween){
+                    checkbox.checked = true
+                }
+            })
+        }
+        lastChecked = this
+    }
+
+    function loadNotepad(){
+        items.forEach((item, j) => {
+            var newNote = document.createElement('div')
+            newNote.setAttribute('class', 'item')
+            newNote.innerHTML = `
+            <input type="checkbox" data-id=${j} ${item.done ? 'checked' : ''} >
+            <p>${item.text}</p>
+            <button data-id=${j}>X</button>
+            `
+            notepad.appendChild(newNote)
+        })
+    }
+    function toggle(e){
+        let index = e.target.dataset.id;
+
+        if(e.target.matches('input')){
+            items[index].done = !items[index].done
+            localStorage.setItem('items', JSON.stringify(items))
+        }
+        else if(e.target.matches('button')){
+            items.splice(index, 1)
+            console.log(index)
+            localStorage.setItem('items', JSON.stringify(items))
+            window.location.reload()
+        }
+        else{
+            return;
+        }
+    }
+
+    recognition.start()
+
+    loadNotepad()
+    form.addEventListener('submit', addNotes)
+    notepad.addEventListener('click', toggle)
+    checkboxes.forEach(checkbox => checkbox.addEventListener('click', handleCheck))
+</script>
+</html>
